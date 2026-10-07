@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2050 미래 사업 아이템 브레인스토밍</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Jua', 'Nunito', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#fdfbfb',
+                            dark: '#ebedee',
+                            primary: '#ff6b6b',
+                            secondary: '#4ecdc4',
+                            tertiary: '#ffe66d',
+                        }
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+        }
+        
+        .roulette-container {
+            position: relative;
+            width: 100%;
+            max-width: 320px; /* Max width for each roulette */
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: block;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #ff4757;
+            z-index: 10;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+        
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background-color: #ff4757;
+            border-radius: 50%;
+        }
+
+        .btn-spin {
+            transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .btn-spin:active {
+            transform: scale(0.95);
+        }
+
+        .result-card {
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .result-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Fun background elements */
+        .bg-shape {
+            position: fixed;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans p-4 md:p-8 flex flex-col items-center">
+    
+    <!-- Decorative background elements -->
+    <div class="bg-shape rounded-full bg-yellow-300 w-64 h-64 blur-3xl top-10 left-10 animate-pulse-fast"></div>
+    <div class="bg-shape rounded-full bg-pink-300 w-80 h-80 blur-3xl bottom-10 right-10 animate-pulse-fast" style="animation-delay: 1s;"></div>
+    
+    <canvas id="confetti-canvas"></canvas>
+
+    <header class="text-center mb-8 w-full max-w-5xl">
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-md mb-2 animate-bounce-slow">
+            🚀 2050 미래 사업 아이템 발명소 💡
+        </h1>
+        <p class="text-xl md:text-2xl text-blue-900 font-bold bg-white/50 inline-block px-4 py-2 rounded-full backdrop-blur-sm shadow-sm">
+            세 개의 룰렛을 돌려 엄청난 발명품을 만들어보자!
+        </p>
+    </header>
+
+    <main class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        
+        <!-- Target Customer Roulette -->
+        <div class="flex flex-col items-center bg-white/80 p-6 rounded-3xl shadow-xl backdrop-blur-md border-4 border-brand-primary">
+            <h2 class="text-2xl font-bold text-brand-primary mb-4 flex items-center gap-2">
+                <span class="text-3xl">🎯</span> 타겟 고객
+            </h2>
+            <div class="roulette-container mb-6">
+                <div class="pointer"></div>
+                <canvas id="canvas-target"></canvas>
+            </div>
+            <button id="btn-spin-target" class="btn-spin w-full bg-brand-primary hover:bg-red-500 text-white text-xl font-bold py-4 rounded-2xl shadow-lg border-b-4 border-red-700 active:border-b-0 active:mt-1">
+                누구에게 팔까? (돌리기!)
+            </button>
+            <div id="result-target" class="result-card hidden mt-4 w-full bg-red-100 border-2 border-red-300 rounded-xl p-4 text-center font-bold text-lg min-h-[80px] flex items-center justify-center">
+                결과 대기 중...
+            </div>
+        </div>
+
+        <!-- Object & Food Roulette -->
+        <div class="flex flex-col items-center bg-white/80 p-6 rounded-3xl shadow-xl backdrop-blur-md border-4 border-brand-secondary">
+            <h2 class="text-2xl font-bold text-teal-600 mb-4 flex items-center gap-2">
+                <span class="text-3xl">🍔</span> 일상 사물 & 음식
+            </h2>
+            <div class="roulette-container mb-6">
+                <div class="pointer"></div>
+                <canvas id="canvas-object"></canvas>
+            </div>
+            <button id="btn-spin-object" class="btn-spin w-full bg-brand-secondary hover:bg-teal-500 text-white text-xl font-bold py-4 rounded-2xl shadow-lg border-b-4 border-teal-700 active:border-b-0 active:mt-1">
+                무엇을 바꿀까? (돌리기!)
+            </button>
+            <div id="result-object" class="result-card hidden mt-4 w-full bg-teal-100 border-2 border-teal-300 rounded-xl p-4 text-center font-bold text-lg min-h-[80px] flex items-center justify-center">
+                결과 대기 중...
+            </div>
+        </div>
+
+        <!-- Future Tech Roulette -->
+        <div class="flex flex-col items-center bg-white/80 p-6 rounded-3xl shadow-xl backdrop-blur-md border-4 border-yellow-400">
+            <h2 class="text-2xl font-bold text-yellow-600 mb-4 flex items-center gap-2">
+                <span class="text-3xl">🚀</span> 미래 기술
+            </h2>
+            <div class="roulette-container mb-6">
+                <div class="pointer"></div>
+                <canvas id="canvas-tech"></canvas>
+            </div>
+            <button id="btn-spin-tech" class="btn-spin w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 text-xl font-bold py-4 rounded-2xl shadow-lg border-b-4 border-yellow-600 active:border-b-0 active:mt-1">
+                어떤 기술을 쓸까? (돌리기!)
+            </button>
+            <div id="result-tech" class="result-card hidden mt-4 w-full bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 text-center font-bold text-lg min-h-[80px] flex items-center justify-center">
+                결과 대기 중...
+            </div>
+        </div>
+
+    </main>
+
+    <section class="w-full max-w-4xl bg-white/90 p-8 rounded-3xl shadow-2xl backdrop-blur-lg border-4 border-indigo-400 text-center relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-20 text-6xl">✨</div>
+        <h2 class="text-3xl font-bold text-indigo-700 mb-6">내 미래 사업 아이템은?</h2>
+        <div class="flex flex-col md:flex-row justify-center items-center gap-4 text-2xl font-bold mb-8">
+            <div id="final-target" class="px-4 py-2 bg-gray-100 rounded-lg text-gray-400 border-2 border-dashed border-gray-300 min-w-[150px]">???</div>
+            <span class="text-gray-400">에게 필요한</span>
+            <div id="final-tech" class="px-4 py-2 bg-gray-100 rounded-lg text-gray-400 border-2 border-dashed border-gray-300 min-w-[150px]">???</div>
+            <span class="text-gray-400">가 적용된</span>
+            <div id="final-object" class="px-4 py-2 bg-gray-100 rounded-lg text-gray-400 border-2 border-dashed border-gray-300 min-w-[150px]">???</div>
+        </div>
+        
+        <div id="action-area" class="hidden">
+             <h3 class="text-xl text-gray-600 mb-4">멋진 아이디어야! 이제 이름을 지어주고 어떤 기능인지 상상해볼까?</h3>
+             <button id="btn-celebrate" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105">
+                 🎉 축하 파티 열기! 🎉
+             </button>
+        </div>
+    </section>
+
+    <script>
+        // Data Arrays
+        const targetCustomers = [
+            "다이어트 중인 티라노사우루스", "옷 입기를 귀찮아하는 투명인간", "불면증에 시달리는 뱀파이어",
+            "감정을 느끼기 시작한 AI 로봇", "지구에 놀러 온 시간 여행자", "매일 밤 야식이 당기는 좀비",
+            "심해 10,000m에 사는 인어공주", "주인 몰래 휴가를 떠나고 싶은 강아지", "마법 지팡이를 잃어버린 마법사",
+            "우주에서 갓 이사 온 외계인 가족", "100년 만에 깨어난 미라", "길을 잃은 산타클로스",
+            "숙제가 너무 많은 조선시대 선비", "스마트폰 중독에 빠진 원시인", "춤바람 난 프랑켄슈타인",
+            "물을 무서워하는 해적 선장", "고소공포증이 있는 슈퍼맨", "매운맛에 중독된 북극곰",
+            "사춘기가 온 인공지능 스피커", "지구가 너무 더운 눈사람"
+        ];
+
+        const objectsAndFoods = [
+            "초등학생의 소울푸드 마라탕", "맨날 짝짝이로 굴러다니는 학교 실내화", "어깨가 무거운 학원 책가방",
+            "아침마다 나오기 싫은 따뜻한 이불", "비 오는 날 들고 다니기 귀찮은 우산", "아침마다 끄고 다시 자는 알람시계",
+            "항상 소파 틈새로 사라지는 텔레비전 리모컨", "다 먹고 치우기 귀찮은 식판", "수업 시간마다 책상에 쌓이는 지우개 가루",
+            "동네를 누비는 자전거", "잃어버리기 쉬운 무선 이어폰", "돌돌 말려 엉켜버린 충전기 선",
+            "급식에 나온 식은 돈까스", "비 오면 젖는 캔버스 운동화", "맨날 잃어버리는 머리끈",
+            "잘 부러지는 샤프심", "무거운 겨울 패딩", "맛없는 감기약 시럽",
+            "땀 냄새 나는 체육복", "녹아버린 아이스크림"
+        ];
+
+        const futureTechs = [
+            "원하는 목적지로 1초 만에 '순간이동' 시켜주는 기술",
+            "머릿속 생각만으로 기기를 켜고 끄며 조종할 수 있는 뇌-컴퓨터 인터페이스(BCI) 기술",
+            "사용자의 건강 상태를 스캔하고 기분에 맞춰 스스로 색상과 온도를 바꾸는 기술",
+            "아무리 먹거나 써도 100년 동안 절대 줄어들지 않는 무한 복제 기술",
+            "무거운 물건도 공중에 둥둥 띄워 주인을 졸졸 따라다니게 만드는 반중력 기술",
+            "반려동물이나 길고양이의 언어를 사람의 말로 완벽하게 통역해 주는 AI",
+            "스위치를 누르면 개미처럼 작아져서 주머니에 쏙 들어가는 나노 축소 기술",
+            "망가지거나 더러워져도 1초 만에 새것처럼 복구되는 자가 치유 기술",
+            "아무것도 없는 허공에 생생한 3D 가상 현실이나 점수판을 띄워주는 홀로그램 기술",
+            "우주 밖이나 바닷속 만 미터 깊이에서도 완벽하게 작동하는 초강력 내구력 기술",
+            "사용자의 감정을 스캔하여 분위기에 맞는 향기를 방출하는 감정 인식 후각 시스템",
+            "종이에 그린 그림이 진짜 살아 움직이는 4D 스캐닝 프린터",
+            "먹으면 1시간 동안 투명 인간이 되는 알약형 나노봇",
+            "날씨를 마음대로 조종할 수 있는 소형 기상 컨트롤 장치",
+            "1초 만에 옷의 디자인과 질감을 바꿔주는 스마트 섬유",
+            "상대방의 진심을 자막으로 보여주는 증강현실 렌즈",
+            "잠을 자면서 원하는 지식을 다운로드하는 수면 학습 헬멧",
+            "과거로 5분만 돌아갈 수 있는 미니 타임머신",
+            "만지는 것마다 초콜릿으로 변하는 촉각 변환 장갑",
+            "아무리 노래를 못해도 완벽한 가수로 만들어주는 음파 교정 마이크"
+        ];
+
+        // Color Palettes for Wheels
+        const colorPalette1 = ["#ff9ff3", "#feca57", "#ff6b6b", "#48dbfb", "#1dd1a1", "#5f27cd", "#c8d6e5", "#ff7f50"];
+        const colorPalette2 = ["#55efc4", "#81ecec", "#74b9ff", "#a29bfe", "#ffeaa7", "#fab1a0", "#ff7675", "#fd79a8"];
+        const colorPalette3 = ["#fbc531", "#e1b12c", "#4cd137", "#44bd32", "#00a8ff", "#0097e6", "#9c88ff", "#8c7ae6"];
+
+        // Audio Context Setup (for synthesized sounds to avoid external resources)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playTickSound() {
+            if(!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.05);
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playWinSound() {
+            if(!audioCtx) return;
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc1.type = 'sine';
+            osc2.type = 'square';
+            
+            osc1.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+            osc1.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1); // C#5
+            osc1.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2); // E5
+            osc1.frequency.setValueAtTime(880, audioCtx.currentTime + 0.3); // A5
+
+            osc2.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc2.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+            osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+            osc2.frequency.setValueAtTime(880, audioCtx.currentTime + 0.3);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime + 0.3);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+            
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc1.start();
+            osc2.start();
+            osc1.stop(audioCtx.currentTime + 0.8);
+            osc2.stop(audioCtx.currentTime + 0.8);
+        }
+
+        class Roulette {
+            constructor(canvasId, data, colors, resultElementId, finalElementId, themeColorClass) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.data = data;
+                this.colors = colors;
+                this.resultEl = document.getElementById(resultElementId);
+                this.finalEl = document.getElementById(finalElementId);
+                this.themeColorClass = themeColorClass;
+                
+                this.numSegments = data.length;
+                this.arc = Math.PI * 2 / this.numSegments;
+                this.currentAngle = 0;
+                this.isSpinning = false;
+                this.spinTime = 0;
+                this.spinTimeTotal = 0;
+                this.spinSpeed = 0;
+                
+                // High DPI Canvas setup
+                this.setupCanvas();
+                this.draw();
+                
+                // Handle resize
+                window.addEventListener('resize', () => {
+                    this.setupCanvas();
+                    this.draw();
+                });
+            }
+
+            setupCanvas() {
+                const container = this.canvas.parentElement;
+                const size = container.clientWidth;
+                const dpr = window.devicePixelRatio || 1;
+                
+                this.canvas.width = size * dpr;
+                this.canvas.height = size * dpr;
+                this.canvas.style.width = `${size}px`;
+                this.canvas.style.height = `${size}px`;
+                
+                this.ctx.scale(dpr, dpr);
+                this.centerX = size / 2;
+                this.centerY = size / 2;
+                this.radius = size / 2 - 10; // 10px padding
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                for (let i = 0; i < this.numSegments; i++) {
+                    const angle = this.currentAngle + i * this.arc;
+                    
+                    // Draw segment
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = this.colors[i % this.colors.length];
+                    this.ctx.moveTo(this.centerX, this.centerY);
+                    this.ctx.arc(this.centerX, this.centerY, this.radius, angle, angle + this.arc, false);
+                    this.ctx.lineTo(this.centerX, this.centerY);
+                    this.ctx.fill();
+                    
+                    // Draw border
+                    this.ctx.save();
+                    this.ctx.strokeStyle = "rgba(255,255,255,0.5)";
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                    this.ctx.restore();
+
+                    // Draw text (numbers for visual simplicity, actual text in result)
+                    this.ctx.save();
+                    this.ctx.translate(this.centerX, this.centerY);
+                    this.ctx.rotate(angle + this.arc / 2);
+                    this.ctx.textAlign = "right";
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.font = `bold ${Math.max(12, this.radius * 0.1)}px 'Jua', sans-serif`;
+                    // Add slight shadow to text
+                    this.ctx.shadowColor = "rgba(0,0,0,0.5)";
+                    this.ctx.shadowBlur = 4;
+                    
+                    // Just draw index number on the wheel to keep it clean, show full text on result
+                    this.ctx.fillText((i + 1).toString(), this.radius - 15, 5);
+                    this.ctx.restore();
+                }
+                
+                // Draw center circle
+                this.ctx.beginPath();
+                this.ctx.arc(this.centerX, this.centerY, this.radius * 0.15, 0, Math.PI * 2);
+                this.ctx.fillStyle = "#ffffff";
+                this.ctx.fill();
+                this.ctx.lineWidth = 4;
+                this.ctx.strokeStyle = "#dddddd";
+                this.ctx.stroke();
+                
+                // Center dot
+                this.ctx.beginPath();
+                this.ctx.arc(this.centerX, this.centerY, this.radius * 0.05, 0, Math.PI * 2);
+                this.ctx.fillStyle = "#333333";
+                this.ctx.fill();
+            }
+
+            spin() {
+                if (this.isSpinning) return;
+                initAudio(); // Initialize audio context on user interaction
+                
+                this.isSpinning = true;
+                this.spinTime = 0;
+                // Random spin time between 3 to 5 seconds
+                this.spinTimeTotal = Math.random() * 2000 + 3000; 
+                // Random initial speed
+                this.spinSpeed = Math.random() * 0.2 + 0.3;
+                
+                this.resultEl.classList.remove('show', 'bg-white', 'text-gray-800');
+                this.resultEl.classList.add('hidden');
+                
+                this.rotateWheel();
+            }
+
+            easeOut(t, b, c, d) {
+                const ts = (t /= d) * t;
+                const tc = ts * t;
+                return b + c * (tc + -3 * ts + 3 * t);
+            }
+
+            rotateWheel() {
+                this.spinTime += 20;
+                if (this.spinTime >= this.spinTimeTotal) {
+                    this.stopRotateWheel();
+                    return;
+                }
+                
+                // Easing function to slow down
+                const spinAngle = this.spinSpeed - this.easeOut(this.spinTime, 0, this.spinSpeed, this.spinTimeTotal);
+                this.currentAngle += spinAngle;
+                
+                // Tick sound logic (play sound roughly every segment pass)
+                // In canvas, 270 degrees (Top) is -Math.PI/2
+                // We calculate which segment is currently at the top
+                let degrees = this.currentAngle * 180 / Math.PI + 90;
+                let arcd = this.arc * 180 / Math.PI;
+                let index = Math.floor((360 - degrees % 360) / arcd);
+                
+                if (this.lastIndex !== index) {
+                    playTickSound();
+                    this.lastIndex = index;
+                }
+                
+                this.draw();
+                requestAnimationFrame(() => this.rotateWheel());
+            }
+
+            stopRotateWheel() {
+                this.isSpinning = false;
+                playWinSound();
+                
+                // Calculate winning segment
+                // Top pointer is at 270 degrees (-Math.PI/2)
+                let degrees = this.currentAngle * 180 / Math.PI + 90;
+                let arcd = this.arc * 180 / Math.PI;
+                let index = Math.floor((360 - degrees % 360) / arcd);
+                
+                const resultText = this.data[index];
+                
+                // Show result locally
+                this.resultEl.innerHTML = `<span class="text-2xl mb-1 block">🎉</span> ${resultText}`;
+                this.resultEl.classList.remove('hidden');
+                setTimeout(() => this.resultEl.classList.add('show'), 10);
+                
+                // Update final sentence area
+                this.finalEl.textContent = resultText;
+                this.finalEl.className = `px-4 py-3 bg-white rounded-xl font-bold shadow-md transform transition scale-105 border-4 ${this.themeColorClass}`;
+                
+                checkAllDone();
+            }
+        }
+
+        let targetRoulette, objectRoulette, techRoulette;
+
+        window.onload = function() {
+            targetRoulette = new Roulette('canvas-target', targetCustomers, colorPalette1, 'result-target', 'final-target', 'border-red-400 text-red-600');
+            objectRoulette = new Roulette('canvas-object', objectsAndFoods, colorPalette2, 'result-object', 'final-object', 'border-teal-400 text-teal-600');
+            techRoulette = new Roulette('canvas-tech', futureTechs, colorPalette3, 'result-tech', 'final-tech', 'border-yellow-400 text-yellow-600');
+
+            document.getElementById('btn-spin-target').addEventListener('click', () => targetRoulette.spin());
+            document.getElementById('btn-spin-object').addEventListener('click', () => objectRoulette.spin());
+            document.getElementById('btn-spin-tech').addEventListener('click', () => techRoulette.spin());
+            
+            document.getElementById('btn-celebrate').addEventListener('click', () => {
+                shootConfetti();
+                playWinSound();
+            });
+        };
+
+        // Check if all 3 roulettes have been spun
+        function checkAllDone() {
+            const t1 = document.getElementById('final-target').textContent;
+            const t2 = document.getElementById('final-object').textContent;
+            const t3 = document.getElementById('final-tech').textContent;
+            
+            if (t1 !== '???' && t2 !== '???' && t3 !== '???') {
+                const actionArea = document.getElementById('action-area');
+                actionArea.classList.remove('hidden');
+                actionArea.classList.add('animate-bounce-slow');
+                setTimeout(shootConfetti, 500);
+            }
+        }
+
+        const confettiCanvas = document.getElementById('confetti-canvas');
+        const ctxConfetti = confettiCanvas.getContext('2d');
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        });
+
+        let confettis = [];
+        const confettiColors = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#ff6b81'];
+
+        class Confetti {
+            constructor() {
+                this.x = window.innerWidth / 2;
+                this.y = window.innerHeight;
+                this.vx = (Math.random() - 0.5) * 25; // x velocity
+                this.vy = -(Math.random() * 15 + 15); // initial y velocity (up)
+                this.size = Math.random() * 10 + 5;
+                this.color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                this.rotation = Math.random() * 360;
+                this.rotSpeed = (Math.random() - 0.5) * 10;
+                this.gravity = 0.5;
+                this.drag = 0.95;
+            }
+            update() {
+                this.vx *= this.drag;
+                this.vy += this.gravity;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.rotation += this.rotSpeed;
+            }
+            draw() {
+                ctxConfetti.save();
+                ctxConfetti.translate(this.x, this.y);
+                ctxConfetti.rotate(this.rotation * Math.PI / 180);
+                ctxConfetti.fillStyle = this.color;
+                ctxConfetti.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctxConfetti.restore();
+            }
+        }
+
+        let animationId = null;
+
+        function shootConfetti() {
+            confettis = [];
+            for (let i = 0; i < 150; i++) {
+                confettis.push(new Confetti());
+            }
+            
+            if (animationId) cancelAnimationFrame(animationId);
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctxConfetti.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            let active = false;
+            confettis.forEach(c => {
+                c.update();
+                c.draw();
+                if (c.y < window.innerHeight) active = true;
+            });
+            
+            if (active) {
+                animationId = requestAnimationFrame(animateConfetti);
+            } else {
+                ctxConfetti.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            }
+        }
+    </script>
+</body>
+</html>
